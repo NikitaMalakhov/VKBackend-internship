@@ -14,11 +14,13 @@ services:
       - db
   db:
     image: postgres:latest
+    env_file:
+      - ./.env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=pg
-      - POSTGRES_PASSWORD=pg
-      - POSTGRES_DB=pg
+      - POSTGRES_USER=${SQL_USER}
+      - POSTGRES_PASSWORD=${SQL_PASSWORD}
+      - POSTGRES_DB=${SQL_DATABASE}
 volumes:
   postgres_data:

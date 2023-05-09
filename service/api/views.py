@@ -4,10 +4,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
+from django.shortcuts import get_object_or_404
+
 from .models import User, Friendship, FriendshipRequest
 from .serializers import UserSerializer, FriendshipSerializer, FriendshipRequestSerializer
-
-from django.db.models import Q
 
 
 @api_view(['GET', 'POST'])
@@ -16,7 +16,11 @@ def list_all_users(request):
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
 
-        return Response(serializer.data)
+        return Response({
+            'code': status.HTTP_200_OK,
+            'message': None,
+            'data': serializer.data,
+        }, status=status.HTTP_200_OK)
     elif request.method == 'POST':
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -51,11 +55,20 @@ def user_detail(request, pk):
 
 @api_view(['GET'])
 def list_users_friends(request, pk):
-    friends = Friendship.objects.filter(
+    user = get_object_or_404(User, pk=pk)
+    friendship_queryset = Friendship.objects.filter(
         user_1__pk=pk) | Friendship.objects.filter(user_2__pk=pk)
-    serializer = FriendshipSerializer(friends, many=True)
 
-    return Response(serializer.data)
+    friends = [friendship.user_1 if friendship.user_2 == user else friendship.user_2
+               for friendship in friendship_queryset]
+
+    serializer = UserSerializer(friends, many=True)
+
+    return Response({
+        'code': status.HTTP_200_OK,
+        'message': None,
+        'data': serializer.data
+    })
 
 
 @api_view(['POST'])
@@ -75,7 +88,7 @@ def add_friend(request, pk, friend_pk):
 
     friendship_request = FriendshipRequest.objects.filter(
         addressee__pk=friend_pk, destination__pk=pk)  # Then we must accept this request
-    
+
     if friendship_request.exists():
         friendship = Friendship(user1=user1, user2=user2)
         friendship.save()
@@ -129,8 +142,10 @@ def outgoing_requests(request, pk):
 @api_view(['POST'])
 def accept_request(request, pk, fr_pk):
     user = User.objects.get(id=pk)
-    friendship_request = FriendshipRequest.objects.get(id=fr_pk)
-    if friendship_request and friendship_request.destination == user:
+    friendship_request = FriendshipRequest.objects.get(
+        addressee__pk=fr_pk, destination__pk=pk)
+
+    if friendship_request:
         friendship = Friendship(
             user_1=user, user_2=friendship_request.addressee)
         friendship.save()
