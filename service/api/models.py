@@ -11,12 +11,6 @@ class User(models.Model):
 
     def __str__(self) -> str:
         return f"User #{self.id}: {self.username}"
-    
-    # class Meta:
-    #     db_table = "users"
-    #     db_table_comment = "Users table"
-
-
 
 
 class FriendshipRequest(models.Model):

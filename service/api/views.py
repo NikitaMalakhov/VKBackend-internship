@@ -64,6 +64,7 @@ def add_friend(request, pk, friend_pk):
     user2 = User.objects.get(id=friend_pk)
     friendship_request = FriendshipRequest.objects.filter(
         addressee__pk=pk, destination__pk=friend_pk)
+
     if friendship_request.exists():
         serializer = FriendshipRequestSerializer(friendship_request[0])
         return Response({
@@ -71,8 +72,10 @@ def add_friend(request, pk, friend_pk):
             'message': 'Friend request is already created',
             'data': serializer.data
         })
+
     friendship_request = FriendshipRequest.objects.filter(
         addressee__pk=friend_pk, destination__pk=pk)  # Then we must accept this request
+    
     if friendship_request.exists():
         friendship = Friendship(user1=user1, user2=user2)
         friendship.save()
@@ -120,7 +123,7 @@ def outgoing_requests(request, pk):
         'code': status.HTTP_200_OK,
         'message': None,
         'data': serializer.data
-    })
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -138,7 +141,29 @@ def accept_request(request, pk, fr_pk):
             'code': status.HTTP_201_CREATED,
             'message': None,
             'data': serializer.data
-        })
+        }, status=status.HTTP_201_CREATED)
+
+    return Response({
+        'code': status.HTTP_400_BAD_REQUEST,
+        'message': 'Friendship request not found',
+        'data': None
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def reject_request(request, pk, fr_pk):
+    user = User.objects.get(id=pk)
+
+    friendship_request = FriendshipRequest.objects.get(id=fr_pk)
+
+    if friendship_request and friendship_request.destination == user:
+        friendship_request.delete()
+        return Response({
+            'code': status.HTTP_200_OK,
+            'message': 'Friendship request was rejected',
+            'data': None
+        }, status=status.HTTP_200_OK)
+
     return Response({
         'code': status.HTTP_400_BAD_REQUEST,
         'message': 'Friendship request not found',
@@ -151,30 +176,32 @@ def retrieve_status_of_friend(request, pk, fr_pk):
     user = User.objects.get(id=pk)
     friendship = Friendship.objects.filter(
         user_1=user, user_2__pk=fr_pk) | Friendship.objects.filter(user_1__pk=fr_pk, user_2=pk)
+
     if friendship.exists():
         return Response({
             'code': status.HTTP_200_OK,
             'message': None,
             'status': 'friend'
         })
+
     friendship_request = FriendshipRequest.objects.filter(
         addressee__pk=pk, destination__pk=fr_pk)
+
     if friendship_request.exists():
         return Response({
             'code': status.HTTP_200_OK,
             'message': None,
             'status': 'outgoing'
-        })
+        }, status=status.HTTP_200_OK)
     friendship_request = FriendshipRequest.objects.filter(
         addressee__pk=fr_pk, destination__pk=pk)
-    if friendship_request.exists():
-        return Response({
-            'code': status.HTTP_200_OK,
-            'message': None,
-            'status': 'incoming'
-        })
+
     return Response({
         'code': status.HTTP_200_OK,
         'message': None,
+        'status': 'incoming'
+    }) if friendship_request.exists() else Response({
+        'code': status.HTTP_200_OK,
+        'message': None,
         'status': 'unknown'
-    })
+    }, status=status.HTTP_200_OK)

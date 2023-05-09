@@ -23,7 +23,6 @@ from . import views
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("openapi", get_schema_view(title="VKBackend", description="API"), name='openapi-schema'),
-
     path("api/users", views.list_all_users),
     path("api/users/<int:pk>", views.user_detail),
     path("api/users/<int:pk>/friends", views.list_users_friends),
@@ -32,4 +31,5 @@ urlpatterns = [
     path("api/users/<int:pk>/friend_requests/outgoing", views.outgoing_requests),
     path("api/users/<int:pk>/add_friend/<int:friend_pk>", views.add_friend),
     path("api/users/<int:pk>/friend_requests/<int:fr_pk>/accept", views.accept_request),
+    path("api/users/<int:pk>/friend_requests/<int:fr_pk>/reject", views.reject_request)
 ]
