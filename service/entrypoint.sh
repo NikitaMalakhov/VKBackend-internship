@@ -14,6 +14,4 @@ fi
 python manage.py flush --no-input
 python manage.py migrate --run-syncdb
 
-gunicorn --bind 0.0.0.0:8000 api.wsgi
-
 exec "$@"
